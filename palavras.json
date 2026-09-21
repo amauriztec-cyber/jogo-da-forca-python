@@ -1,0 +1,17 @@
+{
+    "tecnologia": {
+        "python": "Linguagem de programação criada por Guido van Rossum",
+        "teclado": "Periférico usado para digitar",
+        "algoritmo": "Sequência de passos para resolver um problema"
+    },
+    "natureza": {
+        "montanha": "Elevação natural do terreno",
+        "cachoeira": "Queda d'água natural",
+        "floresta": "Área com grande concentração de árvores"
+    },
+    "comida": {
+        "macarrao": "Massa alimentícia feita de farinha e água",
+        "abacaxi": "Fruta tropical com casca espinhosa",
+        "feijao": "Legume comum na culinária brasileira"
+    }
+}
