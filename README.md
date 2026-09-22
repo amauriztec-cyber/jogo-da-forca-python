@@ -2,6 +2,10 @@
 
 Jogo da forca com interface gráfica, desenvolvido em Python puro utilizando a biblioteca `tkinter`. O jogador escolhe uma categoria, tenta adivinhar a palavra secreta letra por letra e acompanha visualmente o desenho da forca conforme os erros aumentam.
 
+## Jogue online
+
+🎮 [Jogar agora](https://amauriztec-cyber.github.io/jogo-da-forca-python/)
+
 ## Funcionalidades
 
 - Seleção de categoria (tecnologia, natureza, comida) antes de cada partida
