@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jogo da Forca</title>
+<style>
+  :root {
+    --bg: #1c2b22;
+    --board: #24382c;
+    --chalk: #f3ead9;
+    --chalk-dim: #c9c0ac;
+    --accent: #e0a94f;
+    --wrong: #c1604c;
+    --right: #7fae6f;
+    --line: rgba(243,234,217,0.35);
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body {
+    font-family: 'Courier New', ui-monospace, monospace;
+    color: var(--chalk);
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    letter-spacing: 0.5px;
+  }
+  .sub {
+    color: var(--chalk-dim);
+    font-size: 0.85rem;
+    margin: 0 0 24px;
+  }
+
+  .board {
+    background: var(--board);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 24px;
+  }
+
+  /* Setup screen */
+  .setup label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--chalk-dim);
+    margin-bottom: 10px;
+  }
+  .cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .cat-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 8px 14px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .cat-btn:hover { border-color: var(--accent); }
+  .cat-btn.selected { border-color: var(--accent); color: var(--accent); }
+
+  button.primary {
+    background: var(--accent);
+    color: #26200f;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--chalk-dim);
+    padding: 10px 18px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  /* Game screen */
+  .hangman { display: flex; justify-content: center; margin-bottom: 12px; }
+  .hangman svg { width: 160px; height: 160px; }
+  .hangman line, .hangman circle {
+    stroke: var(--chalk);
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .part { opacity: 0; transition: opacity 0.25s ease; }
+  .part.shown { opacity: 1; }
+
+  .dica {
+    text-align: center;
+    color: var(--chalk-dim);
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+  }
+
+  .palavra {
+    text-align: center;
+    font-size: 2rem;
+    letter-spacing: 8px;
+    margin-bottom: 20px;
+    word-break: break-all;
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--chalk-dim);
+    margin-bottom: 18px;
+  }
+  .status-row b { color: var(--chalk); }
+
+  .keyboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .key {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    padding: 8px 0;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .key:hover:not(:disabled) { border-color: var(--accent); }
+  .key:disabled { opacity: 0.3; cursor: default; }
+  .key.right { border-color: var(--right); color: var(--right); }
+  .key.wrong { border-color: var(--wrong); color: var(--wrong); }
+
+  .end-msg {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+  }
+  .end-msg.win { color: var(--right); }
+  .end-msg.lose { color: var(--wrong); }
+
+  .actions { display: flex; justify-content: center; gap: 10px; }
+
+  .hidden { display: none; }
+
+  @media (max-width: 420px) {
+    .palavra { font-size: 1.4rem; letter-spacing: 5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Jogo da Forca</h1>
+  <p class="sub">Escolha uma categoria e tente adivinhar a palavra antes que o desenho seja concluído.</p>
+
+  <div class="board">
+
+    <!-- SETUP -->
+    <div id="setup" class="setup">
+      <label>Categoria</label>
+      <div class="cats" id="cats"></div>
+      <button class="primary" id="btnStart">Começar</button>
+    </div>
+
+    <!-- GAME -->
+    <div id="game" class="hidden">
+      <div class="hangman">
+        <svg viewBox="0 0 120 140">
+          <line x1="10" y1="135" x2="90" y2="135" />
+          <line x1="30" y1="135" x2="30" y2="10" />
+          <line x1="30" y1="10" x2="80" y2="10" />
+          <line x1="80" y1="10" x2="80" y2="25" />
+          <circle class="part" id="p-head" cx="80" cy="38" r="13" />
+          <line class="part" id="p-body" x1="80" y1="51" x2="80" y2="90" />
+          <line class="part" id="p-arml" x1="80" y1="60" x2="65" y2="80" />
+          <line class="part" id="p-armr" x1="80" y1="60" x2="95" y2="80" />
+          <line class="part" id="p-legl" x1="80" y1="90" x2="68" y2="115" />
+          <line class="part" id="p-legr" x1="80" y1="90" x2="92" y2="115" />
+        </svg>
+      </div>
+
+      <p class="dica" id="dica"></p>
+      <p class="palavra" id="palavra"></p>
+
+      <div class="status-row">
+        <span>Erros: <b id="erros">0</b>/6</span>
+        <span id="categoriaAtual"></span>
+      </div>
+
+      <div class="keyboard" id="keyboard"></div>
+
+      <div id="fim" class="hidden">
+        <p class="end-msg" id="endMsg"></p>
+        <div class="actions">
+          <button class="primary" id="btnDeNovo">Jogar de novo</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BANCO = {
+  "tecnologia": {
+    "python": "Linguagem de programação criada por Guido van Rossum",
+    "teclado": "Periférico usado para digitar",
+    "algoritmo": "Sequência de passos para resolver um problema"
+  },
+  "natureza": {
+    "montanha": "Elevação natural do terreno",
+    "cachoeira": "Queda d'água natural",
+    "floresta": "Área com grande concentração de árvores"
+  },
+  "comida": {
+    "macarrao": "Massa alimentícia feita de farinha e água",
+    "abacaxi": "Fruta tropical com casca espinhosa",
+    "feijao": "Legume comum na culinária brasileira"
+  }
+};
+
+const PARTES = ["p-head", "p-body", "p-arml", "p-armr", "p-legl", "p-legr"];
+const ALFABETO = "abcdefghijklmnopqrstuvwxyz".split("");
+
+let estado = {
+  categoria: null,
+  palavra: "",
+  dica: "",
+  letrasCertas: new Set(),
+  letrasErradas: new Set(),
+  maxErros: 6
+};
+
+function normaliza(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function montarCategorias() {
+  const cont = document.getElementById("cats");
+  Object.keys(BANCO).forEach((cat, i) => {
+    const btn = document.createElement("button");
+    btn.className = "cat-btn" + (i === 0 ? " selected" : "");
+    btn.textContent = cat;
+    btn.dataset.cat = cat;
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    cont.appendChild(btn);
+  });
+}
+
+function montarTeclado() {
+  const kb = document.getElementById("keyboard");
+  kb.innerHTML = "";
+  ALFABETO.forEach(letra => {
+    const btn = document.createElement("button");
+    btn.className = "key";
+    btn.textContent = letra;
+    btn.addEventListener("click", () => tentarLetra(letra, btn));
+    kb.appendChild(btn);
+  });
+}
+
+function iniciarJogo() {
+  const catSelecionada = document.querySelector(".cat-btn.selected").dataset.cat;
+  const entradas = Object.entries(BANCO[catSelecionada]);
+  const [palavra, dica] = entradas[Math.floor(Math.random() * entradas.length)];
+
+  estado = {
+    categoria: catSelecionada,
+    palavra: palavra,
+    dica: dica,
+    letrasCertas: new Set(),
+    letrasErradas: new Set(),
+    maxErros: 6
+  };
+
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+  document.getElementById("fim").classList.add("hidden");
+  document.getElementById("dica").textContent = "Dica: " + dica;
+  document.getElementById("categoriaAtual").textContent = "Categoria: " + catSelecionada;
+
+  PARTES.forEach(id => document.getElementById(id).classList.remove("shown"));
+  montarTeclado();
+  atualizarTela();
+}
+
+function tentarLetra(letra, btn) {
+  if (estado.letrasCertas.has(letra) || estado.letrasErradas.has(letra)) return;
+
+  const palavraNorm = normaliza(estado.palavra);
+  if (palavraNorm.includes(letra)) {
+    estado.letrasCertas.add(letra);
+    btn.classList.add("right");
+  } else {
+    estado.letrasErradas.add(letra);
+    btn.classList.add("wrong");
+    const erros = estado.letrasErradas.size;
+    if (erros <= PARTES.length) {
+      document.getElementById(PARTES[erros - 1]).classList.add("shown");
+    }
+  }
+  btn.disabled = true;
+  atualizarTela();
+}
+
+function atualizarTela() {
+  const palavraNorm = normaliza(estado.palavra);
+  const exibida = palavraNorm.split("").map(l => estado.letrasCertas.has(l) ? l : "_").join(" ");
+  document.getElementById("palavra").textContent = exibida;
+  document.getElementById("erros").textContent = estado.letrasErradas.size;
+
+  const venceu = !exibida.includes("_");
+  const perdeu = estado.letrasErradas.size >= estado.maxErros;
+
+  if (venceu || perdeu) {
+    document.querySelectorAll(".key").forEach(k => k.disabled = true);
+    const msg = document.getElementById("endMsg");
+    document.getElementById("fim").classList.remove("hidden");
+    if (venceu) {
+      msg.textContent = "Você venceu! A palavra era: " + estado.palavra;
+      msg.className = "end-msg win";
+    } else {
+      msg.textContent = "Você perdeu. A palavra era: " + estado.palavra;
+      msg.className = "end-msg lose";
+    }
+  }
+}
+
+document.getElementById("btnStart").addEventListener("click", iniciarJogo);
+document.getElementById("btnDeNovo").addEventListener("click", () => {
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("setup").classList.remove("hidden");
+});
+
+montarCategorias();
+</script>
+</body>
+</html>
